@@ -1,5 +1,7 @@
+from asyncio import InvalidStateError
 import csv
 from math import degrees
+from xmlrpc.client import Boolean
 import numpy as np
 
 # ---  Global Variables --- #
@@ -18,8 +20,15 @@ puzzle_sol = np.zeros((9,9), dtype=int)
 # Domain of each cell in a puzzle (initial domain for each cell is 1 to 9)
 domains = [[{1,2,3,4,5,6,7,8,9} for _ in range(9)] for _ in range(9)]
 
+# Minimum Remaining Value (MRV) list
+mrv = np.zeros((9,9), dtype=int)
+
 # Degree of each cells (degree = number of unassigned cells in row col and square)
 deg_heu = np.zeros((9,9), dtype=int)
+
+# Keep track of number of recursion to avoid infinite loop caused by bad input
+num_tries = 0
+max_num_tries = 800
 # ------------------------- #
 
 
@@ -31,6 +40,7 @@ def print_puzzle_board(board):
 
 
 def construct_puzzles():
+    global puzzles
     # read sudoku data set from csv file
     file = open(csv_path)
     csvreader = csv.reader(file)
@@ -45,6 +55,8 @@ def construct_puzzles():
             problem = np.reshape(np.array([int(x) for x in row[0][0:81]]),(9,9))
         if len(row[0]) >= 163:
             solution = np.reshape(np.array([int(x) for x in row[0][82:]]),(9,9))
+        else:
+            solution = np.reshape(np.array([int(0) for x in range(81)]),(9,9))
         puzzles.append([problem, solution])
 
 
@@ -65,15 +77,73 @@ def ini_constraint():
             if(puzzle[i][j] != 0):
                 domains[i][j] = {puzzle[i][j]}
 
-    # for cells with domain size > 1, do constraint propagation
+
+def constraint_propagation():      
+        
+    # do constraint propagation to reduce domains until no more reduction is possible
+    continue_propagation = True
+    i = 0
+    while(continue_propagation):
+        num_unassigned = np.count_nonzero(puzzle == 0)
+
+        # reduce domains
+        reduce_domains()
+        
+        # if the number of unassigned cell is same as previous time, stop
+        if(num_unassigned == np.count_nonzero(puzzle == 0)):
+            continue_propagation = False
+        
+        print("\033[1;33m Constraint Propagation #", i, "\033[0m")
+        print_puzzle_board(puzzle)
+        print("num of 0 = ", np.count_nonzero(puzzle == 0), "\n")
+        i+=1
+
+
+def reduce_domains():
+    # make a copy of current puzzle and domain
+    # cp_puz = np.copy(puzzle)
+    # cp_dom = np.copy(domains)
+
+    # for all cells with domain size > 1, do constraint propagation
     for i in range(9):
         for j in range(9):
             if(len(domains[i][j]) > 1):
-                constraint_propagation(i, j)
+                # apply_arc_consistency(cp_puz, cp_dom, i, j)
+                apply_arc_consistency(i, j)
+
+    # fill the puzzle if only one value left in the domain
+    for i in range(9):
+        for j in range(9):
+            if(len(domains[i][j]) == 1):
+                puzzle[i][j] = list(domains[i][j])[0]
 
 
-def constraint_propagation(i, j):
-    global domains
+# def apply_arc_consistency(cp_puz, cp_dom , i, j) -> bool:
+
+#     # reduce domain for cell(i,j)
+#     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
+
+#     diff_row = d_all.difference(cp_puz[i,:])                    # difference between d_all and i th row
+#     diff_col = d_all.difference(cp_puz[:,j])                    # difference between d_all and j th column
+#     r = i // 3 * 3
+#     c = j // 3 * 3
+#     diff_squ = d_all.difference(cp_puz[r:r+3,c:c+3].flatten())  # difference between d_all and square of cell(i,j) belongs to
+#     intersection = diff_row.intersection(diff_col,diff_squ)     # intersection between all three differences
+    
+#     if(len(intersection) < 1):
+#         return False
+
+#     # set new domain
+#     cp_dom[i][j] = intersection
+
+#     # fill the puzzle if only one value left in the domain
+#     if(len(intersection) == 1):
+#         cp_puz[i][j] = list(intersection)[0]
+    
+#     return True
+
+def apply_arc_consistency(i, j) -> bool:
+    global domains, puzzle
 
     # reduce domain for cell(i,j)
     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
@@ -85,12 +155,13 @@ def constraint_propagation(i, j):
     diff_squ = d_all.difference(puzzle[r:r+3,c:c+3].flatten())  # difference between d_all and square of cell(i,j) belongs to
     intersection = diff_row.intersection(diff_col,diff_squ)     # intersection between all three differences
     
+    if(len(intersection) < 1):
+        return False
+
     # set new domain
     domains[i][j] = intersection
-
-    # fill the puzzle if only one value left in the domain
-    if len(intersection):
-        puzzle[i][j] = list(intersection)[0]
+    
+    return True
 
 
 def update_degree():
@@ -115,75 +186,101 @@ def update_degree():
                 deg_heu[i][j] = n_row + n_col + n_squ
 
 
+def update_mrv():
+    global mrv
 
-def backtracking_search():
-    
-    # stop searching when all cells are filled or after 100 iterations
-    num_ite = 0
-    while(np.count_nonzero(puzzle == 0) != 0 and num_ite < 100):
-        # update degree heuristic
+    # reset mrv list
+    mrv.fill(0)
+
+    # for all cells, count the number of possible value in its domain
+    for i in range(9):
+        for j in range(9):
+             num = len(domains[i][j])
+             if(num == 1 and puzzle[i][j] != 0): num = 10  # to not consider filled cells, assign 10 which is greater than max domain num 
+             mrv[i][j] = num
+
+
+def get_next_variable():
+    # picks variable with fewest domain values (min of MRV)
+    # if there are more than one, picks one with the highest degree heuristics
+
+    # update MRV list
+    update_mrv()
+    min_arr = np.nonzero(mrv == mrv.min())
+    r = min_arr[0][0]
+    c = min_arr[1][0]
+
+    if(len(min_arr) != 1):
+        # update degree heuristic list
         update_degree()
+        max_degree = deg_heu[r][c]
+        for i in min_arr[0]:
+            for j in min_arr[1]:
+                if max_degree < deg_heu[i][j]:
+                    max_degree = deg_heu[i][j]
+                    r = i
+                    c = j
+    return [r,c]
 
-        # find the index of cell with highest degree
-        max_index = np.unravel_index(deg_heu.argmax(), deg_heu.shape)
 
-        # 
-        # constraint_propagation(max_index[])
-        num_ite += 1
 
+def backtracking_search() -> bool:
+    global num_tries, puzzle
+
+    # recursion base cases
+    if(np.count_nonzero(puzzle == 0) == 0):
+        # found solution
+        return True
+    if(num_tries >= max_num_tries):
+        # no solution found after max_num_tries recursions
+        return False
+
+    # get next variable to process
+    next_index = get_next_variable()
+
+    # assign a value from its domain, and do forward checking
+    for val in domains[next_index[0]][next_index[1]]:
+        puzzle[next_index[0]][next_index[1]] = val
+        if apply_arc_consistency(next_index[0], next_index[1]):
+            backtracking_search()
+        else:
+            puzzle[next_index[0]][next_index[1]] = 0
+        #update number of tries
+        num_tries += 1
 
 
 def main():
 
-    # Create Sudoku Puzzles from Input File
+    # try:
+    is_solved = False
+    
+    # create sudoku puzzles from input file
     construct_puzzles()
 
-    # Generate Sudoku Puzzle
+    # generate sudoku puzzle
     random_generate_puzzle()
 
-    # Print Sudoku Puzzle Board
+    # print sudoku puzzle board
     print("\033[1;33m Sudoku Problem \033[0m")
     print_puzzle_board(puzzle)
 
-    # Initial Constraints Propagation
+    # initial constraints propagation
     ini_constraint()
 
-    print("\033[1;33m After Initial Constraint Propagation \033[0m")
-    print_puzzle_board(puzzle)
-    print("num of 0 = ",np.count_nonzero(puzzle == 0))
-    
-    ini_constraint()
-
-    print("\033[1;33m After Second Constraint Propagation \033[0m")
-    print_puzzle_board(puzzle)
-    print("num of 0 = ",np.count_nonzero(puzzle == 0))
-
-    ini_constraint()
-    print("\033[1;33m After Third Constraint Propagation \033[0m")
-    print_puzzle_board(puzzle)
-    print("num of 0 = ",np.count_nonzero(puzzle == 0))
-
-    # Start Backtracking Search with Forward Checking
-    # backtracking_search()
-    
-
-    # MRV
-
+    # constraint propagation with Arc-Consistency and forward checking
+    constraint_propagation()
+        
+    # backtracking with MRV heuristic and forward checking
+    backtracking_search()
 
     # Display Result
+    print("\033[1;33m Result \033[0m")
+    print_puzzle_board(puzzle)
 
+
+    # except Exception as e:
+    #     print("\n \033[1;37;41m", e ,"\033[0m")
 
 
 if __name__ == '__main__':
     main()
-
-
-
-# 81 vars - initial D is from 1-9
-# before doing degree heuristics, do constraints propagation
-# choose the best degree heuristic var, assign a number from its domain
-# fill the priority queue for MRV (keep it updated), pick the best ?? from priority queue
-# if the domain become empty, it is failure, so stop and backtrack to previous value picking
-# use stack to keep track of which to backtrack
-# degree: number of empty cells in neighbors
-# MRV number options in the domain
