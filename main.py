@@ -27,7 +27,7 @@ deg_heu = np.zeros((9,9), dtype=int)
 
 # Keep track of number of recursion to avoid infinite loop caused by bad input
 num_tries = 0
-max_num_tries = 800
+max_num_tries = 100000
 # ------------------------- #
 
 
@@ -159,7 +159,7 @@ def get_neighbors(i, j):
 
 def check_neighbors_arc_consistency(i, j) -> bool:
 
-    # for all neighbors check if they satisfy the arc consistency
+    # for all neighbors of (i,,j), check if they satisfy arc consistency
     neighbors = get_neighbors(i, j)
     for neighbor in neighbors:
         if(puzzle[neighbor[0]][neighbor[1]] == 0):
