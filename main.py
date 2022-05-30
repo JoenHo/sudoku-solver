@@ -172,6 +172,10 @@ def apply_arc_consistency(i, j) -> bool:
 
 
 def get_domain(i, j):
+
+    if(puzzle[i][j] != 0):
+        return {puzzle[i][j]}
+
     # update domain for cell(i,j)
     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
 
