@@ -280,8 +280,9 @@ def backtracking_search() -> bool:
 
             # call recursively 
             if backtracking_search():
-                # set val to domain
-                domains[row_index][col_index] = {val}
+                # update domain
+                d = get_domain(row_index, col_index)
+                domains[row_index][col_index] = d
                 return True
 
         # rollback
