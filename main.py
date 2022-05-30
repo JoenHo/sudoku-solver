@@ -28,6 +28,9 @@ deg_heu = np.zeros((9,9), dtype=int)
 # Keep track of number of recursion to avoid infinite loop caused by bad input
 num_tries = 0
 max_num_tries = 100000
+
+# Flag for using degree heuristic
+use_degree = False
 # ------------------------- #
 
 
@@ -236,7 +239,7 @@ def get_next_variable():
     c = min_arr[1][0]   # min_arr[1] is list of column indices 
 
     # if there is a tie
-    if(len(min_arr[0]) != 1):
+    if use_degree and (len(min_arr[0]) != 1):
         # update degree heuristic list
         update_degree()
         max_degree = deg_heu[r][c]
