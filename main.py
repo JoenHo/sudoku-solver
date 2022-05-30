@@ -77,26 +77,6 @@ def ini_constraint():
                 domains[i][j] = {puzzle[i][j]}
 
 
-def constraint_propagation():      
-        
-    # do constraint propagation to reduce domains until no more reduction is possible
-    i = 0
-    while(True):
-        num_unassigned = np.count_nonzero(puzzle == 0)
-
-        # reduce domains
-        reduce_domains()
-
-        print("\033[1;33m Constraint Propagation #", i, "\033[0m")
-        print_puzzle_board(puzzle)
-        print("num of 0 = ", np.count_nonzero(puzzle == 0), "\n")
-        i+=1
-
-        # if the number of unassigned cell is same as previous time, stop
-        if(num_unassigned == np.count_nonzero(puzzle == 0)):
-            break 
-
-
 def AC3() -> bool:
     global domains
     queue = deque([])
