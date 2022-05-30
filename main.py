@@ -154,8 +154,8 @@ def apply_arc_consistency(i, j) -> bool:
     # if puzzle board at (i,j) is already filled, return true
     if(puzzle[i][j] != 0): return True
 
-    # reduce domain for cell(i,j)
-    intersection = update_domain(i, j)
+    # get domain for cell(i,j)
+    intersection = get_domain(i, j)
     
     # if no value remains, fail
     if(len(intersection) < 1):
@@ -171,7 +171,7 @@ def apply_arc_consistency(i, j) -> bool:
     return True
 
 
-def update_domain(i, j):
+def get_domain(i, j):
     # update domain for cell(i,j)
     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
 
@@ -233,9 +233,10 @@ def get_next_variable():
 
     # if there is a tie
     if(len(min_arr[0]) != 1):
-        # update degree heuristic list and pick one with the highest degree heuristics
+        # update degree heuristic list
         update_degree()
         max_degree = deg_heu[r][c]
+        # among mrv cells, pick one with the highest degree heuristics
         for n in range(len(min_arr[0])):
             i = min_arr[0][n]
             j = min_arr[1][n]
@@ -292,8 +293,8 @@ def is_valid_assignment(val, i, j):
     if(puzzle[i][j] != 0):
         return True
 
-    # update domain for cell(i,j)
-    intersection = update_domain(i, j)
+    # get domain for cell(i,j)
+    intersection = get_domain(i, j)
     if(len(intersection) < 1):
         return False
 
