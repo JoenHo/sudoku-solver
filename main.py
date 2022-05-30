@@ -292,8 +292,8 @@ def is_valid_assignment(val, i, j):
     if(puzzle[i][j] != 0):
         return True
 
-    # reduce domain for cell(i,j)
-    intersection = reduce_domain(i, j)
+    # update domain for cell(i,j)
+    intersection = update_domain(i, j)
     if(len(intersection) < 1):
         return False
 
