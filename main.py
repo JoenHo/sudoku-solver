@@ -26,8 +26,8 @@ mrv = np.zeros((9,9), dtype=int)
 deg_heu = np.zeros((9,9), dtype=int)
 
 # Keep track of number of recursion to avoid infinite loop caused by bad input
-num_tries = 0
-max_num_tries = 100000
+num_recurs = 0
+max_num_recurs = 100000
 
 # Flag for using degree heuristic
 use_degree = False
@@ -255,17 +255,17 @@ def get_next_variable():
 
 
 def backtracking_search() -> bool:
-    global puzzle, domains, num_tries
+    global puzzle, domains, num_recurs
 
     # recursion base cases
     if(np.count_nonzero(puzzle == 0) == 0):
         # found solution
         return True
 
-    num_tries += 1
-    if(num_tries >= max_num_tries):
+    num_recurs += 1
+    if(num_recurs >= max_num_recurs):
         # no solution found after max_num_tries recursions
-        print("Solution not found after", max_num_tries, "iterations!")
+        print("Solution not found after", max_num_recurs, "iterations!")
         return False
 
     # get next variable to process
@@ -340,7 +340,7 @@ def main():
     print("\n\033[1;33m   After Backtracking   \033[0m")
     print_puzzle_board(puzzle)
     print("\033[0;36m  Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
-    print("\033[0;36m  Number of Iterations:", num_tries, "\033[0m\n")
+    print("\033[0;36m  Number of Recursions:", num_recurs, "\033[0m\n")
 
     # Display Solution (if provided)
     if(np.count_nonzero(puzzle_sol==0) == 0):
