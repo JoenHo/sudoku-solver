@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import copy
+from collections import deque
 
 # ---  Global Variables --- #
 # Sudoku Database (pair: problem, solution)
@@ -62,8 +63,8 @@ def random_generate_puzzle():
     global puzzle, puzzle_sol
     np.random.seed()
     i = np.random.randint(len(puzzles))
-    puzzle = puzzles[i][0]
-    puzzle_sol = puzzles[i][1]
+    puzzle = copy.deepcopy(puzzles[i][0])
+    puzzle_sol = copy.deepcopy(puzzles[i][1])
 
 
 def ini_constraint():
@@ -96,14 +97,75 @@ def constraint_propagation():
             break 
 
 
-def reduce_domains():
-
-    # for all unassigned cells, do constraint propagation
+def AC3() -> bool:
+    global domains
+    queue = deque([])
+    
+    # put all constraints to queue
     for i in range(9):
         for j in range(9):
-            if(puzzle[i][j] == 0):
-                # apply_arc_consistency(cp_puz, cp_dom, i, j)
-                apply_arc_consistency(i, j)
+            if len(domains[i][j]) > 1:
+                queue.append([i,j])
+
+    # while queue is not empty
+    while(queue):
+        # pop one from queue
+        indx = queue.popleft() 
+
+        # reduce domain
+        d_len = len(domains[indx[0]][indx[1]])  # original len of domain
+        ret = apply_arc_consistency(indx[0], indx[1])
+        if(ret == False): return False
+
+        # if domain reduced
+        if(d_len != len(domains[indx[0]][indx[1]])):
+            
+            # get neighbors (cells in same row, colum or square)
+            neighbors = get_neighbors(indx[0], indx[1])
+
+            # add blank neighbors to queue
+            for neighbor in neighbors:
+                if(puzzle[neighbor[0]][neighbor[1]] == 0):
+                    queue.append([neighbor[0], neighbor[1]])
+    
+    return  True
+
+
+
+def get_neighbors(i, j):
+    # get neighbors (in same row, colum or square) of cell at row i and column j
+    neighbors = set()
+
+    # append neighbors in row i except itself
+    for x in range(9):
+        if(x != j):
+            neighbors.add((i, x))
+
+    # append neighbors in column j except itself
+    for x in range(9):
+        if(x != i):
+            neighbors.add((x, j))
+
+    # append neighbors in the same square except itself
+    r = i // 3 * 3
+    c = j // 3 * 3
+    for x in range(3):
+        for y in range(3):
+            if(r + x != i and c + y != j):
+                neighbors.add((r+x, c+y))
+
+    return neighbors
+    
+
+def check_neighbors_arc_consistency(i, j) -> bool:
+
+    # for all neighbors check if they satisfy the arc consistency
+    neighbors = get_neighbors(i, j)
+    for neighbor in neighbors:
+        if(puzzle[neighbor[0]][neighbor[1]] == 0):
+            if(False == apply_arc_consistency(neighbor[0], neighbor[1])):
+                return False
+    return True
 
 
 def apply_arc_consistency(i, j) -> bool:
@@ -123,7 +185,7 @@ def apply_arc_consistency(i, j) -> bool:
         return False
 
     # set new domain
-    domains[i][j] = intersection
+    domains[i][j] = set.copy(intersection)
 
     # fill the puzzle if only one value left in the domain
     if(len(intersection) == 1):
@@ -195,16 +257,14 @@ def get_next_variable():
 
 
 def backtracking_search() -> bool:
-    global num_tries, puzzle, domains
-
-    #update number of tries
-    num_tries += 1
+    global puzzle, domains, num_tries
 
     # recursion base cases
     if(np.count_nonzero(puzzle == 0) == 0):
         # found solution
-        print("SOLUTION FOUND!!!")
         return True
+
+    num_tries += 1
     if(num_tries >= max_num_tries):
         # no solution found after max_num_tries recursions
         print("SOLUTION COULD NOT FOUND!!!")
@@ -230,23 +290,22 @@ def backtracking_search() -> bool:
             if x != val:
                 domains[row_index][col_index].discard(x)
 
-        # apply arc consistency
-        ret = apply_arc_consistency(row_index, col_index)
+        # check if neighbors satisfy the arc consistency
+        ret = check_neighbors_arc_consistency(row_index, col_index)
         if(ret==True):
             backtracking_search()
-            return True
-        else:
-            # rollback to previous state
-            puzzle = bk_puzzle
-            domains = bk_domains
+
+        # remove val from original domain since assigned val was incorrect
+        bk_domains[row_index][col_index].discard(val)
+
+        # rollback to previous state
+        puzzle = copy.deepcopy(bk_puzzle)
+        domains = copy.deepcopy(bk_domains)
         
     return False
 
 
 def main():
-
-    # try:
-    is_solved = False
     
     # create sudoku puzzles from input file
     construct_puzzles()
@@ -255,28 +314,28 @@ def main():
     random_generate_puzzle()
 
     # print sudoku puzzle board
-    print("\033[1;33m Sudoku Problem \033[0m")
+    print("\n\033[1;33m     Sudoku Problem     \033[0m")
     print_puzzle_board(puzzle)
+    print("\033[0;36m Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
 
     # initial constraints propagation
     ini_constraint()
 
     # constraint propagation with Arc-Consistency
-    constraint_propagation()
-        
-    # backtracking with MRV heuristic and forward checking
-    backtracking_search()
-
-    # Display Result
-    print("\033[1;33m Result \033[0m")
+    ret = AC3()
+    print("\n\033[1;33m        After AC3       \033[0m")
     print_puzzle_board(puzzle)
-    print("num of 0 = ", np.count_nonzero(puzzle == 0), "\n")
-    print("num of recursion = ",num_tries , "\n")
+    print("\033[0;36m  Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
 
+    # backtracking with MRV heuristic and forward checking
+    ret = backtracking_search()
+    print("\n\033[1;33m   After Backtracking   \033[0m")
+    print_puzzle_board(puzzle)
+    print("\033[0;36m  Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
 
-
-    # except Exception as e:
-    #     print("\n \033[1;37;41m", e ,"\033[0m")
+    # Display Solution
+    print("\n\033[1;33m       Solution        \033[0m")
+    print_puzzle_board(puzzle_sol)
 
 
 if __name__ == '__main__':
