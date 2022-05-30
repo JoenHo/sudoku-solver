@@ -191,6 +191,20 @@ def apply_arc_consistency(i, j) -> bool:
     return True
 
 
+def reduce_domain(i, j):
+    # reduce domain for cell(i,j)
+    d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
+
+    diff_row = d_all.difference(puzzle[i,:])                    # difference between d_all and i th row
+    diff_col = d_all.difference(puzzle[:,j])                    # difference between d_all and j th column
+    r = i // 3 * 3
+    c = j // 3 * 3
+    diff_squ = d_all.difference(puzzle[r:r+3,c:c+3].flatten())  # difference between d_all and square of cell(i,j) belongs to
+    intersection = diff_row.intersection(diff_col,diff_squ)     # intersection between all three differences
+
+    return intersection
+
+
 def update_degree():
     global deg_heu
 
@@ -288,6 +302,25 @@ def backtracking_search() -> bool:
         # rollback
         puzzle[row_index][col_index] = 0
         
+    return False
+
+
+def is_valid_assignment(val, i, j):
+    global domains, puzzle
+
+    # if puzzle board at (i,j) is already filled, return true
+    if(puzzle[i][j] != 0):
+        return True
+
+    # reduce domain for cell(i,j)
+    intersection = reduce_domain(i, j)
+    if(len(intersection) < 1):
+        return False
+
+    # check if val is possible assignment
+    if val in intersection:
+        return True
+
     return False
 
 
