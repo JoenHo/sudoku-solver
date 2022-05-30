@@ -171,16 +171,13 @@ def check_neighbors_arc_consistency(i, j) -> bool:
 def apply_arc_consistency(i, j) -> bool:
     global domains, puzzle
 
-    # reduce domain for cell(i,j)
-    d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
+    # if puzzle board at (i,j) is already filled, return true
+    if(puzzle[i][j] != 0): return True
 
-    diff_row = d_all.difference(puzzle[i,:])                    # difference between d_all and i th row
-    diff_col = d_all.difference(puzzle[:,j])                    # difference between d_all and j th column
-    r = i // 3 * 3
-    c = j // 3 * 3
-    diff_squ = d_all.difference(puzzle[r:r+3,c:c+3].flatten())  # difference between d_all and square of cell(i,j) belongs to
-    intersection = diff_row.intersection(diff_col,diff_squ)     # intersection between all three differences
+    # reduce domain for cell(i,j)
+    intersection = reduce_domain(i, j)
     
+    # if no value remains, fail
     if(len(intersection) < 1):
         return False
 
@@ -255,7 +252,6 @@ def get_next_variable():
     return [r,c]
 
 
-
 def backtracking_search() -> bool:
     global puzzle, domains, num_tries
 
@@ -267,7 +263,7 @@ def backtracking_search() -> bool:
     num_tries += 1
     if(num_tries >= max_num_tries):
         # no solution found after max_num_tries recursions
-        print("SOLUTION COULD NOT FOUND!!!")
+        print("Solution not found after", max_num_tries, "iterations!")
         return False
 
     # get next variable to process
@@ -276,31 +272,21 @@ def backtracking_search() -> bool:
     col_index = next_index[1]
 
     # pick a value from its domain, and do forward checking
-    d = (domains[row_index][col_index]).copy()
-    for val in d:
-        # backup current state of puzzle / domains
-        bk_puzzle = copy.deepcopy(puzzle)
-        bk_domains = copy.deepcopy(domains)
+    for val in (domains[row_index][col_index]).copy():
 
-        # assign value to puzzle board
-        puzzle[row_index][col_index] = val
+        ret = is_valid_assignment(val, row_index, col_index)
+        if(ret == True):
+            # assign value to puzzle board
+            puzzle[row_index][col_index] = val
 
-        # remove other values from its domain
-        for x in d:
-            if x != val:
-                domains[row_index][col_index].discard(x)
+            # call recursively 
+            if backtracking_search():
+                # set val to domain
+                domains[row_index][col_index] = {val}
+                return True
 
-        # check if neighbors satisfy the arc consistency
-        ret = check_neighbors_arc_consistency(row_index, col_index)
-        if(ret==True):
-            backtracking_search()
-
-        # remove val from original domain since assigned val was incorrect
-        bk_domains[row_index][col_index].discard(val)
-
-        # rollback to previous state
-        puzzle = copy.deepcopy(bk_puzzle)
-        domains = copy.deepcopy(bk_domains)
+        # rollback
+        puzzle[row_index][col_index] = 0
         
     return False
 
