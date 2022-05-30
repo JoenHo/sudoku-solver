@@ -1,7 +1,4 @@
-from asyncio import InvalidStateError
 import csv
-from math import degrees
-from xmlrpc.client import Boolean
 import numpy as np
 
 # ---  Global Variables --- #
@@ -18,7 +15,7 @@ puzzle = np.zeros((9,9), dtype=int)
 puzzle_sol = np.zeros((9,9), dtype=int)
 
 # Domain of each cell in a puzzle (initial domain for each cell is 1 to 9)
-domains = [[{1,2,3,4,5,6,7,8,9} for _ in range(9)] for _ in range(9)]
+domains = np.array([[{1,2,3,4,5,6,7,8,9} for _ in range(9)] for _ in range(9)])
 
 # Minimum Remaining Value (MRV) list
 mrv = np.zeros((9,9), dtype=int)
@@ -81,66 +78,32 @@ def ini_constraint():
 def constraint_propagation():      
         
     # do constraint propagation to reduce domains until no more reduction is possible
-    continue_propagation = True
     i = 0
-    while(continue_propagation):
+    while(True):
         num_unassigned = np.count_nonzero(puzzle == 0)
 
         # reduce domains
         reduce_domains()
-        
-        # if the number of unassigned cell is same as previous time, stop
-        if(num_unassigned == np.count_nonzero(puzzle == 0)):
-            continue_propagation = False
-        
+
         print("\033[1;33m Constraint Propagation #", i, "\033[0m")
         print_puzzle_board(puzzle)
         print("num of 0 = ", np.count_nonzero(puzzle == 0), "\n")
         i+=1
 
+        # if the number of unassigned cell is same as previous time, stop
+        if(num_unassigned == np.count_nonzero(puzzle == 0)):
+            break 
+
 
 def reduce_domains():
-    # make a copy of current puzzle and domain
-    # cp_puz = np.copy(puzzle)
-    # cp_dom = np.copy(domains)
 
-    # for all cells with domain size > 1, do constraint propagation
+    # for all unassigned cells, do constraint propagation
     for i in range(9):
         for j in range(9):
-            if(len(domains[i][j]) > 1):
+            if(puzzle[i][j] == 0):
                 # apply_arc_consistency(cp_puz, cp_dom, i, j)
                 apply_arc_consistency(i, j)
 
-    # fill the puzzle if only one value left in the domain
-    for i in range(9):
-        for j in range(9):
-            if(len(domains[i][j]) == 1):
-                puzzle[i][j] = list(domains[i][j])[0]
-
-
-# def apply_arc_consistency(cp_puz, cp_dom , i, j) -> bool:
-
-#     # reduce domain for cell(i,j)
-#     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
-
-#     diff_row = d_all.difference(cp_puz[i,:])                    # difference between d_all and i th row
-#     diff_col = d_all.difference(cp_puz[:,j])                    # difference between d_all and j th column
-#     r = i // 3 * 3
-#     c = j // 3 * 3
-#     diff_squ = d_all.difference(cp_puz[r:r+3,c:c+3].flatten())  # difference between d_all and square of cell(i,j) belongs to
-#     intersection = diff_row.intersection(diff_col,diff_squ)     # intersection between all three differences
-    
-#     if(len(intersection) < 1):
-#         return False
-
-#     # set new domain
-#     cp_dom[i][j] = intersection
-
-#     # fill the puzzle if only one value left in the domain
-#     if(len(intersection) == 1):
-#         cp_puz[i][j] = list(intersection)[0]
-    
-#     return True
 
 def apply_arc_consistency(i, j) -> bool:
     global domains, puzzle
@@ -160,6 +123,10 @@ def apply_arc_consistency(i, j) -> bool:
 
     # set new domain
     domains[i][j] = intersection
+
+    # fill the puzzle if only one value left in the domain
+    if(len(intersection) == 1):
+        puzzle[i][j] = list(intersection)[0]
     
     return True
 
@@ -174,8 +141,8 @@ def update_degree():
     for i in range(9):
         for j in range(9):
             if(puzzle[i][j] == 0):
-                n_row = np.count_nonzero(puzzle[i,:]==0) - 1    # number of 0 in i th row - 1
-                n_col = np.count_nonzero(puzzle[i,:]==0) - 1    # number of 0 in j th row - 1
+                n_row = np.count_nonzero(puzzle[i,:]==0) - 1    # number of 0 in i th row - itself
+                n_col = np.count_nonzero(puzzle[i,:]==0) - 1    # number of 0 in j th row - itself
                 r = i // 3 * 3
                 c = j // 3 * 3
                 sub_squ = puzzle[r:r+3,c:c+3]
@@ -195,58 +162,82 @@ def update_mrv():
     # for all cells, count the number of possible value in its domain
     for i in range(9):
         for j in range(9):
-             num = len(domains[i][j])
-             if(num == 1 and puzzle[i][j] != 0): num = 10  # to not consider filled cells, assign 10 which is greater than max domain num 
-             mrv[i][j] = num
+            if(puzzle[i][j] != 0):
+                num = 10  # to not consider filled cells, assign 10 which is greater than max domain num 
+            else:
+                num = len(domains[i][j])                 
+            mrv[i][j] = num
 
 
 def get_next_variable():
-    # picks variable with fewest domain values (min of MRV)
-    # if there are more than one, picks one with the highest degree heuristics
 
-    # update MRV list
+    # update MRV list and pick one with fewest domain values (min of MRV)
     update_mrv()
     min_arr = np.nonzero(mrv == mrv.min())
-    r = min_arr[0][0]
-    c = min_arr[1][0]
+    r = min_arr[0][0]   # min_arr[0] is list of row indices 
+    c = min_arr[1][0]   # min_arr[1] is list of column indices 
 
-    if(len(min_arr) != 1):
-        # update degree heuristic list
+    # if there is a tie
+    if(len([min_arr[0]]) != 1):
+        # update degree heuristic list and pick one with the highest degree heuristics
         update_degree()
         max_degree = deg_heu[r][c]
-        for i in min_arr[0]:
-            for j in min_arr[1]:
-                if max_degree < deg_heu[i][j]:
-                    max_degree = deg_heu[i][j]
-                    r = i
-                    c = j
+        for n in range(len(min_arr[0])):
+            i = min_arr[0][n]
+            j = min_arr[1][n]
+            if max_degree < deg_heu[i][j]:
+                max_degree = deg_heu[i][j]
+                r = i
+                c = j
     return [r,c]
 
 
 
 def backtracking_search() -> bool:
-    global num_tries, puzzle
+    global num_tries, puzzle, domains
+
+    #update number of tries
+    num_tries += 1
 
     # recursion base cases
     if(np.count_nonzero(puzzle == 0) == 0):
         # found solution
+        print("SOLUTION FOUND!!!")
         return True
     if(num_tries >= max_num_tries):
         # no solution found after max_num_tries recursions
+        print("SOLUTION COULD NOT FOUND!!!")
         return False
 
     # get next variable to process
     next_index = get_next_variable()
+    row_index = next_index[0]
+    col_index = next_index[1]
 
-    # assign a value from its domain, and do forward checking
-    for val in domains[next_index[0]][next_index[1]]:
-        puzzle[next_index[0]][next_index[1]] = val
-        if apply_arc_consistency(next_index[0], next_index[1]):
+    # pick a value from its domain, and do forward checking
+    d = (domains[row_index][col_index]).copy()
+    for val in d:
+        # backup current state of puzzle / domains
+        bk_puzzle = np.copy(puzzle)
+        bk_domains = np.copy(domains)
+
+        # assign value to puzzle board
+        puzzle[row_index][col_index] = val
+        # remove other values from its domain
+        for x in d:
+            if x != val:
+                domains[row_index][col_index].discard(x)
+
+        # apply arc consistency
+        ret = apply_arc_consistency(row_index, col_index)
+        if(ret==True):
             backtracking_search()
         else:
-            puzzle[next_index[0]][next_index[1]] = 0
-        #update number of tries
-        num_tries += 1
+            # rollback to previous state
+            puzzle = bk_puzzle
+            domains = bk_domains
+        
+    return True
 
 
 def main():
@@ -267,7 +258,7 @@ def main():
     # initial constraints propagation
     ini_constraint()
 
-    # constraint propagation with Arc-Consistency and forward checking
+    # constraint propagation with Arc-Consistency
     constraint_propagation()
         
     # backtracking with MRV heuristic and forward checking
@@ -276,6 +267,9 @@ def main():
     # Display Result
     print("\033[1;33m Result \033[0m")
     print_puzzle_board(puzzle)
+    print("num of 0 = ", np.count_nonzero(puzzle == 0), "\n")
+    print("num of recursion = ",num_tries , "\n")
+
 
 
     # except Exception as e:
