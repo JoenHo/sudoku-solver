@@ -338,9 +338,10 @@ def main():
     print_puzzle_board(puzzle)
     print("\033[0;36m  Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
 
-    # Display Solution
-    print("\n\033[1;33m       Solution        \033[0m")
-    print_puzzle_board(puzzle_sol)
+    # Display Solution (if provided)
+    if(np.count_nonzero(puzzle_sol==0) == 0):
+        print("\n\033[1;33m       Solution        \033[0m")
+        print_puzzle_board(puzzle_sol)
 
 
 if __name__ == '__main__':
