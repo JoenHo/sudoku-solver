@@ -155,7 +155,7 @@ def apply_arc_consistency(i, j) -> bool:
     if(puzzle[i][j] != 0): return True
 
     # reduce domain for cell(i,j)
-    intersection = reduce_domain(i, j)
+    intersection = update_domain(i, j)
     
     # if no value remains, fail
     if(len(intersection) < 1):
@@ -171,8 +171,8 @@ def apply_arc_consistency(i, j) -> bool:
     return True
 
 
-def reduce_domain(i, j):
-    # reduce domain for cell(i,j)
+def update_domain(i, j):
+    # update domain for cell(i,j)
     d_all = {1,2,3,4,5,6,7,8,9}                                 # domain of all possible value
 
     diff_row = d_all.difference(puzzle[i,:])                    # difference between d_all and i th row
