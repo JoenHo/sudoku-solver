@@ -337,6 +337,7 @@ def main():
     print("\n\033[1;33m   After Backtracking   \033[0m")
     print_puzzle_board(puzzle)
     print("\033[0;36m  Number of Blanks:", np.count_nonzero(puzzle == 0), "\033[0m\n")
+    print("\033[0;36m  Number of Iterations:", num_tries, "\033[0m\n")
 
     # Display Solution (if provided)
     if(np.count_nonzero(puzzle_sol==0) == 0):
