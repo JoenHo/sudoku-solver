@@ -223,6 +223,7 @@ def backtracking_search() -> bool:
 
         # assign value to puzzle board
         puzzle[row_index][col_index] = val
+
         # remove other values from its domain
         for x in d:
             if x != val:
@@ -232,12 +233,13 @@ def backtracking_search() -> bool:
         ret = apply_arc_consistency(row_index, col_index)
         if(ret==True):
             backtracking_search()
+            return True
         else:
             # rollback to previous state
             puzzle = bk_puzzle
             domains = bk_domains
         
-    return True
+    return False
 
 
 def main():
