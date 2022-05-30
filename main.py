@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import copy
 
 # ---  Global Variables --- #
 # Sudoku Database (pair: problem, solution)
@@ -218,8 +219,8 @@ def backtracking_search() -> bool:
     d = (domains[row_index][col_index]).copy()
     for val in d:
         # backup current state of puzzle / domains
-        bk_puzzle = np.copy(puzzle)
-        bk_domains = np.copy(domains)
+        bk_puzzle = copy.deepcopy(puzzle)
+        bk_domains = copy.deepcopy(domains)
 
         # assign value to puzzle board
         puzzle[row_index][col_index] = val
