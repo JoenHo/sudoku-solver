@@ -1,31 +1,95 @@
 
-<center><h1>Sudoku AI Solver</h1></center>
-
-
-
+<center><b><h2>Sudoku AI Solver</h2></b></center>
 
 ---
 
+This program consist of following steps:
+1. Read Sudoku problems from file
+2. Solve problem via:
+- [x] Constraint Propagation (use AC-3 algorithm)<br/>
+    Remove all non-valid domain values given the initial sudoku layout
+- [x] Backtracking Search (BT) extended by Forward Checking (FC) + MRV and Degree Heuristics<br/>
+    Traverse blank cells to assign possible value in its domain. After a blank cell is assigned a value, verify the validity by forward checking. If the one conflicts with another value, go back to previous state and try another possible value.
+    Heuristics are used to determine which blank cell to assign next.
+3. Display solution to terminal
+<br/><br/>
 
-Constraint Propagation (AC-3 Algorithm)
-AC-3 algorithm will propagate the constraints and reduce the domain size of the variables by ensuring all possible (future) assignments consistent. 
+---
+<b><h3>Techniques Used</h3></b>
+<details>
+<summary>AC-3</summary>
+description
+<pre>
+<code>
+</code>
+</pre>
+</details>
+
+<details>
+<summary>Backtracking Search (BT)</summary>
+description
+<pre>
+<code>
+</code>
+</pre>
+</details>
 
 
-Backtracking Search Algorithm
-The backtracking algorithm will be implemented using the minimum remaining value (MRV) heuristic. The order of values to be attempted for each variable can be arbitrary. When a variable is assigned, forward checking will be applied to further reduce variables domains.
-At each unassigned variable, it will iterate through the values in order 1-9 (or in
-odometer order if you are doing Monster Sudoku). It will assign each value in turn to that
-variable. If the assignment does not violate any constraints it will proceed to the next variable. If
-the assignment does violate a constraint it will undo that assignment and proceed to the next
-value. If the values for that variable become exhausted it will backtrack to the previous variable,
-undo its current assignment, and proceed to its next value.
+<details>
+<summary>Forward Checking (FC)</summary>
+description
+<pre>
+<code>
+</code>
+</pre>
+</details>
 
 
-Minimum Remaining Heuristic (MRV)
-The next unassigned variable
-chosen is one that has the fewest remaining possible values in its domain (there may be
-several variables that have the same minimum number of possible values remaining).
-Ties are broken arbitrarily, or by DH if DH also was specified.
+<details>
+<summary>Minimum Remaining Heuristic (MRV)</summary>
+description
+<pre>
+<code>
+</code>
+</pre>
+</details>
 
-Degree heuristic: assign a value to the variable that is involved in the largest number of constraints on other unassigned variables. 
-Minimum remaining values (MRV): choose the variable with the fewest possible values.
+
+<details>
+<summary>Degree Heuristic</summary>
+description
+<pre>
+<code>
+</code>
+</pre>
+</details>
+
+<br/>
+
+---
+
+<b><h3>Instructions</h3></b>
+
+<details>
+<summary>Prepare Input File</summary>
+<br>
+<pre>
+<code>
+</code>
+</pre>
+</details>
+<br/>
+
+<details>
+<summary>Run Program</summary>
+<br>
+<pre>
+<code>
+</code>
+</pre>
+</details>
+<br/>
+
+---
+
+<br/>
