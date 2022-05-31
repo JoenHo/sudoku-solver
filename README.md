@@ -78,7 +78,6 @@ description
 </code>
 </pre>
 </details>
-<br/>
 
 <details>
 <summary>Run Program</summary>
