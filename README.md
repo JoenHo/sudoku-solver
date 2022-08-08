@@ -2,7 +2,7 @@
 <center><b><h2>Sudoku AI Solver</h2></b></center>
 
 ---
-This program uses AC-3, Backtracking Search, Forward Checking, MRV and Degree Heuristics to solve 9 x 9 Sudoku puzzles.<br/>
+This program uses Constraint Propagation, Backtracking Search, Forward Checking, MRV and Degree Heuristics to solve 9 x 9 Sudoku puzzles.<br/>
 Program Flow:
 1. Read Sudoku problems from file
 2. Solve problem via:
