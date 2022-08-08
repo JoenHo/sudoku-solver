@@ -70,7 +70,6 @@ description
 
 <b><h3>Instructions</h3></b>
 
-<summary>
 <b>Prepare Input File</b><br/>
 - Name input file as <code>sudoku-puzzles.csv</code><br/>
 - 9 x 9 sudoku board is represented as 81 consecutive numbers<br/>
@@ -87,13 +86,10 @@ Example without solution
 008605010000000420010700000000010530000000080300800009040900000097001600030024000
 </code>
 </pre>
-</summary>
 <br/>
 
-<summary>
 <b>Run Program</b><br/>
 Type command <code>python3 solver.py</code> to start program
-</summary>
 <br/>
 
 ---
