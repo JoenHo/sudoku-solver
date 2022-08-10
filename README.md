@@ -3,7 +3,7 @@
 
 ---
 This program uses Constraint Propagation, Backtracking Search, Forward Checking, MRV and Degree Heuristics to solve 9 x 9 Sudoku puzzles.<br/>
-Program Flow:
+This program will do:
 1. Read Sudoku problems from file
 2. Solve problem via:
     - Constraint Propagation (use AC-3 algorithm)<br/>
@@ -68,7 +68,7 @@ description
 
 --- -->
 
-<b><h3>Instructions</h3></b>
+<b><h3>Build Instructions</h3></b>
 
 <b>Prepare Input File</b><br/>
 - Name input file as <code>sudoku-puzzles.csv</code><br/>
